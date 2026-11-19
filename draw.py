@@ -1,74 +1,144 @@
 #!/usr/bin/env python3
-"""Draw entry.png v2: clean light infographic, Wed 18 Nov 2026.
+"""Draw entry.png v3: dark breaking-news broadcast, Wed 18 Nov 2026.
 
-Design (deliberately unlike v1's navy-amber newspaper + hand-drawn map):
-white page, giant black date, six numbered rows, each with its own
-region colour chip, bold headline + one summary line, and a dark
-stats footer. 1024x1024, flat colours, DejaVu fonts.
+Third identity for this bounty, unlike v1 (navy-amber newspaper with a
+hand-drawn world map) and v2 (bright white page, numbered rows, dark
+stats footer): a near-black live-broadcast screen. Red LIVE pill and
+amber kicker over a giant white date, then six full-width dark bands,
+each with a coloured side bar, a flat pictogram and a bold headline
+plus one summary, closed by a red live-ticker strip. 1024x1024,
+flat colours, DejaVu fonts.
 Run: python3 draw.py -> entry.png (in this directory)."""
+
+import math
 
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1024, 1024
-WHITE = (255, 255, 255)
-PAGE = (250, 249, 246)
-INK = (17, 17, 17)
-GREY = (102, 102, 102)
-HAIR = (222, 220, 214)
-RED = (200, 38, 38)
-FOOT = (28, 30, 34)
-FOOT_LBL = (168, 172, 180)
+BG = (11, 13, 17)
+CARD = (24, 29, 37)
+CARD_EDGE = (48, 55, 66)
+WHITE = (245, 246, 248)
+MUTED = (168, 175, 186)
+BODY_GREY = (198, 203, 212)
+RED = (214, 40, 40)
+AMBER = (255, 176, 32)
+TICKER = (178, 28, 28)
 
 FD = "/usr/share/fonts/truetype/dejavu/"
+
 
 def font(name, size):
     return ImageFont.truetype(FD + name, size)
 
-KICK = font("DejaVuSans-Bold.ttf", 22)
-DATE = font("DejaVuSans-Bold.ttf", 74)
-SUB = font("DejaVuSans.ttf", 20)
-NUM = font("DejaVuSans-Bold.ttf", 40)
-HEAD = font("DejaVuSans-Bold.ttf", 30)
-BODY = font("DejaVuSans.ttf", 21)
-TAG = font("DejaVuSans-Bold.ttf", 15)
-STAT_N = font("DejaVuSans-Bold.ttf", 34)
-STAT_L = font("DejaVuSans.ttf", 14)
 
-img = Image.new("RGB", (W, H), PAGE)
+F_LIVE = font("DejaVuSans-Bold.ttf", 20)
+F_KICK = font("DejaVuSans-Bold.ttf", 22)
+F_DATE = font("DejaVuSans-Bold.ttf", 68)
+F_SUB = font("DejaVuSans.ttf", 20)
+F_HEAD = font("DejaVuSans-Bold.ttf", 27)
+F_BODY = font("DejaVuSans.ttf", 20)
+F_TAG = font("DejaVuSans-Bold.ttf", 15)
+F_TICK = font("DejaVuSans-Bold.ttf", 21)
+
+img = Image.new("RGB", (W, H), BG)
 d = ImageDraw.Draw(img)
-M = 36
+M = 32
 RIGHT = W - M
 
-# ---- header -------------------------------------------------------------
-d.text((M, 30), "THE WORLD IN ONE DAY", font=KICK, fill=RED)
-d.text((M, 58), "18 NOVEMBER 2026", font=DATE, fill=INK)
-d.text((M, 142), "WEDNESDAY  ·  SIX STORIES FROM AROUND THE GLOBE",
-       font=SUB, fill=GREY)
-d.rectangle([M, 170, RIGHT, 174], fill=RED)
+# ---- broadcast header ---------------------------------------------------
+d.rounded_rectangle([M, 28, M + 118, 28 + 36], radius=18, fill=RED)
+d.ellipse([M + 20, 28 + 12, M + 32, 28 + 24], fill=WHITE)
+d.text((M + 42, 28 + 7), "LIVE", font=F_LIVE, fill=WHITE)
+d.text((M + 136, 28 + 8), "BREAKING NEWS", font=F_KICK, fill=AMBER)
+_w = d.textlength("THE WORLD", font=F_KICK)
+d.text((RIGHT - _w, 28 + 8), "THE WORLD", font=F_KICK, fill=MUTED)
 
-# ---- six stories --------------------------------------------------------
-ROWS = [
-    ("01", (200, 38, 38), "MIDDLE EAST",
-     "U.S. STRIKES IRAN, IRAN HITS BACK",
-     "U.S. bombs a missile site on Qeshm Island; Iran fires drones "
+d.text((M, 76), "18 NOVEMBER 2026", font=F_DATE, fill=WHITE)
+d.text((M, 152), "WEDNESDAY  ·  SIX STORIES FROM AROUND THE WORLD",
+       font=F_SUB, fill=MUTED)
+d.rectangle([M, 184, RIGHT, 188], fill=RED)
+
+# ---- pictograms (flat, drawn from primitives) ---------------------------
+def starburst(cx, cy, color):
+    r = 34
+    pts = []
+    for i in range(16):
+        ang = math.pi * i / 8 - math.pi / 2
+        rr = r if i % 2 == 0 else r * 0.45
+        pts.append((cx + rr * math.cos(ang), cy + rr * math.sin(ang)))
+    d.polygon(pts, fill=color)
+    d.ellipse([cx - 8, cy - 8, cx + 8, cy + 8], fill=BG)
+
+
+def bridge(cx, cy, color):
+    d.arc([cx - 40, cy - 26, cx + 40, cy + 46], start=180, end=360,
+          fill=color, width=6)
+    for dx in (-26, 0, 26):
+        d.line([cx + dx, cy - 8, cx + dx, cy + 22], fill=color, width=5)
+    d.line([cx - 44, cy + 22, cx + 44, cy + 22], fill=color, width=7)
+
+
+def summit(cx, cy, color):
+    for dx in (-30, 0, 30):
+        d.ellipse([cx + dx - 11, cy - 22, cx + dx + 11, cy],
+                  fill=color)
+    d.line([cx - 42, cy + 16, cx + 42, cy + 16], fill=color, width=6)
+
+
+def ballot(cx, cy, color):
+    d.rectangle([cx - 26, cy - 6, cx + 26, cy + 30], outline=color, width=5)
+    d.line([cx - 18, cy + 12, cx - 5, cy + 24, cx + 20, cy - 12],
+           fill=color, width=6)
+
+
+def virus(cx, cy, color):
+    for i in range(10):
+        ang = math.pi * 2 * i / 10
+        x1 = cx + 16 * math.cos(ang)
+        y1 = cy + 16 * math.sin(ang)
+        x2 = cx + 34 * math.cos(ang)
+        y2 = cy + 34 * math.sin(ang)
+        d.line([x1, y1, x2, y2], fill=color, width=5)
+    d.ellipse([cx - 16, cy - 16, cx + 16, cy + 16], fill=color)
+    d.ellipse([cx - 6, cy - 6, cx + 6, cy + 6], fill=BG)
+
+
+def shield(cx, cy, color):
+    pts = [(cx, cy - 32), (cx + 26, cy - 22), (cx + 26, cy + 4),
+           (cx, cy + 32), (cx - 26, cy + 4), (cx - 26, cy - 22)]
+    d.polygon(pts, outline=color, width=5)
+    d.line([cx, cy - 12, cx, cy + 12], fill=color, width=5)
+    d.line([cx - 10, cy, cx + 10, cy], fill=color, width=5)
+
+
+ICONS = [starburst, bridge, summit, ballot, virus, shield]
+
+# ---- six story bands ----------------------------------------------------
+STORIES = [
+    ((255, 70, 70), "MIDDLE EAST",
+     "U.S. STRIKES IRAN — IRAN FIRES BACK",
+     "U.S. bombs a missile site on Qeshm Island; Iran launches drones "
      "at U.S. bases in Bahrain and Kuwait."),
-    ("02", (37, 99, 235), "EUROPE",
-     "KERCH BRIDGE HIT AGAIN",
-     "Ukraine strikes the Crimea bridge a second day; part of the "
-     "road span collapses."),
-    ("03", (14, 124, 102), "ASIA",
-     "TRUMP, XI AND PUTIN MEET",
-     "The three leaders hold a summit in Shenzhen on Thursday 19 November."),
-    ("04", (109, 40, 217), "UNITED STATES",
-     "DEMOCRATS TAKE THE SENATE",
-     "Mary Peltola wins Alaska's seat; Democrats gain 56 Senate seats."),
-    ("05", (234, 88, 12), "AFRICA",
-     "EBOLA CASES MORE THAN DOUBLE",
-     "The outbreak in DR Congo passes 11,000 cases and 5,400 deaths."),
-    ("06", (190, 24, 93), "UNITED STATES",
+    ((86, 170, 255), "EUROPE",
+     "KERCH BRIDGE HIT FOR A SECOND DAY",
+     "Ukraine strikes the Crimea bridge again; part of the road span "
+     "collapses."),
+    ((255, 176, 32), "ASIA",
+     "TRUMP, XI AND PUTIN MEET IN SHENZHEN",
+     "The three leaders hold a summit in Shenzhen on Thursday "
+     "19 November."),
+    ((178, 132, 255), "UNITED STATES",
+     "DEMOCRATS WIN THE SENATE",
+     "Mary Peltola takes Alaska's seat; Democrats gain 56 Senate seats."),
+    ((255, 122, 26), "AFRICA",
+     "EBOLA OUTBREAK MORE THAN DOUBLES",
+     "DR Congo passes 11,000 cases and 5,400 deaths in the outbreak."),
+    ((255, 92, 168), "UNITED STATES",
      "U.S. LOSES MEASLES-FREE STATUS",
      "After 26 years: 5,400+ cases and 10 deaths across the country."),
 ]
+
 
 def wrap(text, fnt, maxw):
     words, lines, cur = text.split(), [], ""
@@ -84,45 +154,34 @@ def wrap(text, fnt, maxw):
         lines.append(cur)
     return lines
 
-ROW_Y = 174
-ROW_H = 128
-TX = 140                      # text column x
-TW = RIGHT - TX               # text column width
 
-for i, (num, color, tag, head, body) in enumerate(ROWS):
-    y = ROW_Y + i * ROW_H
-    # number chip
-    d.rounded_rectangle([M, y + 22, M + 84, y + 106], radius=14, fill=color)
-    nw = d.textlength(num, font=NUM)
-    d.text((M + (84 - nw) / 2, y + 40), num, font=NUM, fill=WHITE)
-    # tag, right aligned
-    tw = d.textlength(tag, font=TAG)
-    d.text((RIGHT - tw, y + 26), tag, font=TAG, fill=color)
-    # headline
-    d.text((TX, y + 22), head, font=HEAD, fill=INK)
-    # summary, up to two lines
-    lines = wrap(body, BODY, TW)[:2]
+BAND_Y = 204
+BAND_H = 112
+GAP = 10
+TX = 170
+TW = RIGHT - TX - 8
+
+for i, (color, tag, head, body) in enumerate(STORIES):
+    y = BAND_Y + i * (BAND_H + GAP)
+    d.rounded_rectangle([M, y, RIGHT, y + BAND_H], radius=12,
+                        fill=CARD, outline=CARD_EDGE, width=1)
+    d.rectangle([M, y + 10, M + 7, y + BAND_H - 10], fill=color)
+    ICONS[i](104, y + BAND_H // 2, color)
+    d.text((TX, y + 14), head, font=F_HEAD, fill=WHITE)
+    tw = d.textlength(tag, font=F_TAG)
+    d.text((RIGHT - 16 - tw, y + 18), tag, font=F_TAG, fill=color)
+    lines = wrap(body, F_BODY, TW)[:2]
     for j, ln in enumerate(lines):
-        d.text((TX, y + 62 + j * 27), ln, font=BODY, fill=GREY)
-    # hairline between rows
-    if i < len(ROWS) - 1:
-        d.line([M, y + ROW_H, RIGHT, y + ROW_H], fill=HAIR, width=2)
+        d.text((TX, y + 54 + j * 26), ln, font=F_BODY, fill=BODY_GREY)
 
-# ---- dark stats footer --------------------------------------------------
-FY = ROW_Y + 6 * ROW_H        # 942
-d.rectangle([0, FY, W, H], fill=FOOT)
-STATS = [
-    ("11,000+", "EBOLA CASES IN DR CONGO"),
-    ("56", "SENATE SEATS GAINED"),
-    ("26 YEARS", "MEASLES-FREE, ENDED"),
-]
-SEG = W // 3
-for i, (n, lbl) in enumerate(STATS):
-    cx = i * SEG + SEG // 2
-    nw = d.textlength(n, font=STAT_N)
-    d.text((cx - nw / 2, FY + 12), n, font=STAT_N, fill=WHITE)
-    lw = d.textlength(lbl, font=STAT_L)
-    d.text((cx - lw / 2, FY + 52), lbl, font=STAT_L, fill=FOOT_LBL)
+# ---- live ticker strip ----------------------------------------------------
+TY = BAND_Y + 6 * BAND_H + 5 * GAP + 8   # 934
+d.rectangle([0, TY, W, H], fill=TICKER)
+tick1 = "QESHM ISLAND STRUCK   ·   KERCH BRIDGE DOWN   ·   SHENZHEN SUMMIT"
+tick2 = "SENATE FLIPS   ·   EBOLA 11,000+   ·   MEASLES-FREE STATUS LOST"
+for j, tick in enumerate((tick1, tick2)):
+    tw = d.textlength(tick, font=F_TICK)
+    d.text(((W - tw) / 2, TY + 12 + j * 34), tick, font=F_TICK, fill=WHITE)
 
 img.save("entry.png", optimize=True)
 print("wrote entry.png")
