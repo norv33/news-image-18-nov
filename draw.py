@@ -1,29 +1,29 @@
 #!/usr/bin/env python3
-"""Draw entry.png v3: dark breaking-news broadcast, Wed 18 Nov 2026.
+"""Draw entry.png v4: warm magazine-cover data poster, Wed 18 Nov 2026.
 
-Third identity for this bounty, unlike v1 (navy-amber newspaper with a
-hand-drawn world map) and v2 (bright white page, numbered rows, dark
-stats footer): a near-black live-broadcast screen. Red LIVE pill and
-amber kicker over a giant white date, then six full-width dark bands,
-each with a coloured side bar, a flat pictogram and a bold headline
-plus one summary, closed by a red live-ticker strip. 1024x1024,
-flat colours, DejaVu fonts.
+Fourth identity for this bounty, unlike v1 (navy-amber newspaper with
+a hand-drawn world map and pins), v2 (bright white page, six numbered
+rows, giant black date) and v3 (near-black breaking-news broadcast,
+red LIVE pill, six dark bands, red ticker): a warm magazine cover.
+A sunset illustration panel crowns the page (amber-to-plum sky, sun,
+city skyline, a bridge, three leaders at a summit table), a red
+banner carries the date in huge white type, and the six stories sit
+in a 2x3 grid of cream cards, each with a thick colour bar, a giant
+number, a bold headline and a stat chip. 1024x1024, flat shapes,
+DejaVu fonts, no external assets, no network.
 Run: python3 draw.py -> entry.png (in this directory)."""
-
-import math
 
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1024, 1024
-BG = (11, 13, 17)
-CARD = (24, 29, 37)
-CARD_EDGE = (48, 55, 66)
-WHITE = (245, 246, 248)
-MUTED = (168, 175, 186)
-BODY_GREY = (198, 203, 212)
-RED = (214, 40, 40)
-AMBER = (255, 176, 32)
-TICKER = (178, 28, 28)
+PAPER = (246, 238, 221)      # warm cream page
+CARD = (255, 253, 247)       # card white
+INK = (38, 28, 24)           # near-black warm ink
+MUTED = (122, 105, 88)       # warm grey-brown
+RULE = (214, 198, 170)       # hairline
+RED = (193, 39, 45)          # date banner red
+PLUM = (58, 31, 77)          # skyline silhouette
+SUN = (255, 214, 120)        # sun disc
 
 FD = "/usr/share/fonts/truetype/dejavu/"
 
@@ -32,111 +32,121 @@ def font(name, size):
     return ImageFont.truetype(FD + name, size)
 
 
-F_LIVE = font("DejaVuSans-Bold.ttf", 20)
-F_KICK = font("DejaVuSans-Bold.ttf", 22)
-F_DATE = font("DejaVuSans-Bold.ttf", 68)
-F_SUB = font("DejaVuSans.ttf", 20)
-F_HEAD = font("DejaVuSans-Bold.ttf", 27)
-F_BODY = font("DejaVuSans.ttf", 20)
-F_TAG = font("DejaVuSans-Bold.ttf", 15)
-F_TICK = font("DejaVuSans-Bold.ttf", 21)
+F_MAST = font("DejaVuSerif-Bold.ttf", 78)
+F_KICK = font("DejaVuSans-Bold.ttf", 23)
+F_DATE = font("DejaVuSans-Bold.ttf", 31)
+F_NUM = font("DejaVuSans-Bold.ttf", 46)
+F_TAG = font("DejaVuSans-Bold.ttf", 13)
+F_HEAD = font("DejaVuSans-Bold.ttf", 22)
+F_BODY = font("DejaVuSans.ttf", 17)
+F_STAT = font("DejaVuSans-Bold.ttf", 15)
+F_FOOT = font("DejaVuSans.ttf", 15)
 
-img = Image.new("RGB", (W, H), BG)
+img = Image.new("RGB", (W, H), PAPER)
 d = ImageDraw.Draw(img)
-M = 32
+M = 28
 RIGHT = W - M
 
-# ---- broadcast header ---------------------------------------------------
-d.rounded_rectangle([M, 28, M + 118, 28 + 36], radius=18, fill=RED)
-d.ellipse([M + 20, 28 + 12, M + 32, 28 + 24], fill=WHITE)
-d.text((M + 42, 28 + 7), "LIVE", font=F_LIVE, fill=WHITE)
-d.text((M + 136, 28 + 8), "BREAKING NEWS", font=F_KICK, fill=AMBER)
-_w = d.textlength("THE WORLD", font=F_KICK)
-d.text((RIGHT - _w, 28 + 8), "THE WORLD", font=F_KICK, fill=MUTED)
 
-d.text((M, 76), "18 NOVEMBER 2026", font=F_DATE, fill=WHITE)
-d.text((M, 152), "WEDNESDAY  ·  SIX STORIES FROM AROUND THE WORLD",
-       font=F_SUB, fill=MUTED)
-d.rectangle([M, 184, RIGHT, 188], fill=RED)
-
-# ---- pictograms (flat, drawn from primitives) ---------------------------
-def starburst(cx, cy, color):
-    r = 34
-    pts = []
-    for i in range(16):
-        ang = math.pi * i / 8 - math.pi / 2
-        rr = r if i % 2 == 0 else r * 0.45
-        pts.append((cx + rr * math.cos(ang), cy + rr * math.sin(ang)))
-    d.polygon(pts, fill=color)
-    d.ellipse([cx - 8, cy - 8, cx + 8, cy + 8], fill=BG)
+def lerp(a, b, t):
+    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
 
-def bridge(cx, cy, color):
-    d.arc([cx - 40, cy - 26, cx + 40, cy + 46], start=180, end=360,
-          fill=color, width=6)
-    for dx in (-26, 0, 26):
-        d.line([cx + dx, cy - 8, cx + dx, cy + 22], fill=color, width=5)
-    d.line([cx - 44, cy + 22, cx + 44, cy + 22], fill=color, width=7)
+# ---- sunset illustration panel -------------------------------------------
+PX0, PY0, PX1, PY1 = M, 24, RIGHT, 292
+TOP_C = (247, 183, 51)       # amber sky
+MID_C = (242, 122, 60)       # orange
+BOT_C = (122, 59, 143)       # plum dusk
+steps = 60
+for i in range(steps):
+    t = i / (steps - 1)
+    if t < 0.5:
+        c = lerp(TOP_C, MID_C, t * 2)
+    else:
+        c = lerp(MID_C, BOT_C, (t - 0.5) * 2)
+    y0 = PY0 + (PY1 - PY0) * i // steps
+    y1 = PY0 + (PY1 - PY0) * (i + 1) // steps
+    d.rectangle([PX0, y0, PX1, y1], fill=c)
 
+# sun with a soft halo, upper right of the panel
+sx, sy, sr = 838, 108, 46
+d.ellipse([sx - sr - 16, sy - sr - 16, sx + sr + 16, sy + sr + 16],
+          fill=(250, 196, 90))
+d.ellipse([sx - sr, sy - sr, sx + sr, sy + sr], fill=SUN)
 
-def summit(cx, cy, color):
-    for dx in (-30, 0, 30):
-        d.ellipse([cx + dx - 11, cy - 22, cx + dx + 11, cy],
-                  fill=color)
-    d.line([cx - 42, cy + 16, cx + 42, cy + 16], fill=color, width=6)
+# birds: three small chevrons in the clear sky right of the masthead
+for bx, by, s in ((612, 66, 11), (654, 52, 8), (690, 70, 9)):
+    d.arc([bx - s, by - s // 2, bx, by + s // 2], start=200, end=340,
+          fill=(255, 240, 200), width=3)
+    d.arc([bx, by - s // 2, bx + s, by + s // 2], start=200, end=340,
+          fill=(255, 240, 200), width=3)
 
+# skyline silhouette along the panel floor
+base = PY1
+skyline = [(0, 46), (52, 84), (104, 60), (150, 96), (206, 70),
+           (258, 110), (312, 78), (368, 100), (420, 64), (470, 92),
+           (520, 58), (566, 88), (618, 72), (668, 104), (720, 66),
+           (770, 90), (820, 62), (872, 86), (920, 70)]
+for i in range(len(skyline) - 1):
+    x0, h0 = skyline[i]
+    x1, h1 = skyline[i + 1]
+    d.rectangle([PX0 + x0, base - h0, PX0 + x1, base], fill=PLUM)
+# one tower with a lit spire
+d.rectangle([PX0 + 560, base - 132, PX0 + 584, base], fill=PLUM)
+d.polygon([(PX0 + 566, base - 132), (PX0 + 578, base - 132),
+           (PX0 + 572, base - 158)], fill=PLUM)
+# bridge arc on the left of the skyline
+d.arc([PX0 + 60, base - 118, PX0 + 300, base + 6], start=180, end=360,
+      fill=PLUM, width=8)
+for dx in (100, 140, 180, 220, 260):
+    d.line([PX0 + dx, base - 52, PX0 + dx, base - 8], fill=PLUM, width=5)
+d.line([PX0 + 56, base - 8, PX0 + 304, base - 8], fill=PLUM, width=6)
 
-def ballot(cx, cy, color):
-    d.rectangle([cx - 26, cy - 6, cx + 26, cy + 30], outline=color, width=5)
-    d.line([cx - 18, cy + 12, cx - 5, cy + 24, cx + 20, cy - 12],
-           fill=color, width=6)
+# three summit figures seated at a table, right side of the panel
+for fx in (700, 758, 816):
+    d.ellipse([fx - 13, base - 96, fx + 13, base - 70], fill=PLUM)
+    d.polygon([(fx - 17, base - 68), (fx + 17, base - 68),
+               (fx + 11, base - 34), (fx - 11, base - 34)], fill=PLUM)
+d.rectangle([PX0 + 668, base - 34, PX0 + 848, base - 26], fill=PLUM)
+d.rectangle([PX0 + 682, base - 26, PX0 + 690, base], fill=PLUM)
+d.rectangle([PX0 + 826, base - 26, PX0 + 834, base], fill=PLUM)
 
+# masthead over the sunset, with a plum shadow for legibility
+d.text((M + 22, 44), "THE WORLD", font=F_MAST, fill=(40, 18, 52))
+d.text((M + 18, 40), "THE WORLD", font=F_MAST, fill=(255, 250, 238))
+d.text((M + 20, 138), "IN ONE DAY  ·  SIX STORIES", font=F_KICK,
+       fill=(255, 232, 180))
 
-def virus(cx, cy, color):
-    for i in range(10):
-        ang = math.pi * 2 * i / 10
-        x1 = cx + 16 * math.cos(ang)
-        y1 = cy + 16 * math.sin(ang)
-        x2 = cx + 34 * math.cos(ang)
-        y2 = cy + 34 * math.sin(ang)
-        d.line([x1, y1, x2, y2], fill=color, width=5)
-    d.ellipse([cx - 16, cy - 16, cx + 16, cy + 16], fill=color)
-    d.ellipse([cx - 6, cy - 6, cx + 6, cy + 6], fill=BG)
+# ---- red date banner ------------------------------------------------------
+DY0, DY1 = 300, 346
+d.rectangle([M, DY0, RIGHT, DY1], fill=RED)
+date = "WEDNESDAY  ·  18 NOVEMBER 2026"
+dw = d.textlength(date, font=F_DATE)
+d.text(((W - dw) / 2, DY0 + 7), date, font=F_DATE, fill=(255, 255, 255))
 
-
-def shield(cx, cy, color):
-    pts = [(cx, cy - 32), (cx + 26, cy - 22), (cx + 26, cy + 4),
-           (cx, cy + 32), (cx - 26, cy + 4), (cx - 26, cy - 22)]
-    d.polygon(pts, outline=color, width=5)
-    d.line([cx, cy - 12, cx, cy + 12], fill=color, width=5)
-    d.line([cx - 10, cy, cx + 10, cy], fill=color, width=5)
-
-
-ICONS = [starburst, bridge, summit, ballot, virus, shield]
-
-# ---- six story bands ----------------------------------------------------
+# ---- story cards: 2 rows x 3 columns --------------------------------------
 STORIES = [
-    ((255, 70, 70), "MIDDLE EAST",
-     "U.S. STRIKES IRAN — IRAN FIRES BACK",
-     "U.S. bombs a missile site on Qeshm Island; Iran launches drones "
-     "at U.S. bases in Bahrain and Kuwait."),
-    ((86, 170, 255), "EUROPE",
-     "KERCH BRIDGE HIT FOR A SECOND DAY",
+    ((192, 57, 43), "MIDDLE EAST", "U.S. STRIKES IRAN; IRAN FIRES BACK",
+     "U.S. bombs a missile site on Qeshm Island; Iran fires drones "
+     "at bases in Bahrain, Kuwait.",
+     "QESHM ISLAND"),
+    ((46, 111, 163), "EUROPE", "KERCH BRIDGE HIT A SECOND DAY",
      "Ukraine strikes the Crimea bridge again; part of the road span "
-     "collapses."),
-    ((255, 176, 32), "ASIA",
-     "TRUMP, XI AND PUTIN MEET IN SHENZHEN",
+     "collapses.",
+     "ROAD SPAN DOWN"),
+    ((217, 142, 0), "ASIA", "TRUMP, XI AND PUTIN MEET",
      "The three leaders hold a summit in Shenzhen on Thursday "
-     "19 November."),
-    ((178, 132, 255), "UNITED STATES",
-     "DEMOCRATS WIN THE SENATE",
-     "Mary Peltola takes Alaska's seat; Democrats gain 56 Senate seats."),
-    ((255, 122, 26), "AFRICA",
-     "EBOLA OUTBREAK MORE THAN DOUBLES",
-     "DR Congo passes 11,000 cases and 5,400 deaths in the outbreak."),
-    ((255, 92, 168), "UNITED STATES",
-     "U.S. LOSES MEASLES-FREE STATUS",
-     "After 26 years: 5,400+ cases and 10 deaths across the country."),
+     "19 November.",
+     "SHENZHEN"),
+    ((108, 74, 176), "UNITED STATES", "DEMOCRATS WIN THE SENATE",
+     "Mary Peltola takes Alaska's seat; Democrats gain 56 Senate seats.",
+     "56 SEATS"),
+    ((224, 93, 31), "AFRICA", "EBOLA OUTBREAK MORE THAN DOUBLES",
+     "DR Congo passes 11,000 cases and 5,400 deaths in the outbreak.",
+     "11,000+ CASES"),
+    ((194, 67, 122), "UNITED STATES", "U.S. LOSES MEASLES-FREE STATUS",
+     "After 26 years: 5,400+ cases and 10 deaths.",
+     "5,400+ CASES"),
 ]
 
 
@@ -155,33 +165,45 @@ def wrap(text, fnt, maxw):
     return lines
 
 
-BAND_Y = 204
-BAND_H = 112
-GAP = 10
-TX = 170
-TW = RIGHT - TX - 8
+GY0, GY1 = 366, 972
+GAP = 16
+CW = (RIGHT - M - 2 * GAP) // 3
+CH = (GY1 - GY0 - GAP) // 2
 
-for i, (color, tag, head, body) in enumerate(STORIES):
-    y = BAND_Y + i * (BAND_H + GAP)
-    d.rounded_rectangle([M, y, RIGHT, y + BAND_H], radius=12,
-                        fill=CARD, outline=CARD_EDGE, width=1)
-    d.rectangle([M, y + 10, M + 7, y + BAND_H - 10], fill=color)
-    ICONS[i](104, y + BAND_H // 2, color)
-    d.text((TX, y + 14), head, font=F_HEAD, fill=WHITE)
+for i, (color, tag, head, body, stat) in enumerate(STORIES):
+    col, row = i % 3, i // 3
+    x0 = M + col * (CW + GAP)
+    y0 = GY0 + row * (CH + GAP)
+    x1, y1 = x0 + CW, y0 + CH
+    d.rounded_rectangle([x0, y0, x1, y1], radius=10, fill=CARD,
+                        outline=RULE, width=1)
+    d.rectangle([x0 + 10, y0, x1 - 10, y0 + 10], fill=color)
+    # giant number + region tag
+    num = "%02d" % (i + 1)
+    d.text((x0 + 18, y0 + 22), num, font=F_NUM, fill=color)
     tw = d.textlength(tag, font=F_TAG)
-    d.text((RIGHT - 16 - tw, y + 18), tag, font=F_TAG, fill=color)
-    lines = wrap(body, F_BODY, TW)[:2]
+    d.text((x1 - 18 - tw, y0 + 40), tag, font=F_TAG, fill=color)
+    d.line([x0 + 18, y0 + 84, x1 - 18, y0 + 84], fill=RULE, width=1)
+    # headline, up to 3 lines
+    lines = wrap(head, F_HEAD, CW - 36)[:3]
     for j, ln in enumerate(lines):
-        d.text((TX, y + 54 + j * 26), ln, font=F_BODY, fill=BODY_GREY)
+        d.text((x0 + 18, y0 + 98 + j * 28), ln, font=F_HEAD, fill=INK)
+    # body, up to 3 lines
+    blines = wrap(body, F_BODY, CW - 36)[:3]
+    by = y0 + 98 + len(lines) * 28 + 8
+    for j, ln in enumerate(blines):
+        d.text((x0 + 18, by + j * 23), ln, font=F_BODY, fill=MUTED)
+    # stat chip pinned to the card bottom
+    sw = d.textlength(stat, font=F_STAT) + 24
+    sy = y1 - 46
+    d.rounded_rectangle([x0 + 18, sy, x0 + 18 + sw, sy + 30], radius=15,
+                        fill=color)
+    d.text((x0 + 30, sy + 6), stat, font=F_STAT, fill=(255, 255, 255))
 
-# ---- live ticker strip ----------------------------------------------------
-TY = BAND_Y + 6 * BAND_H + 5 * GAP + 8   # 934
-d.rectangle([0, TY, W, H], fill=TICKER)
-tick1 = "QESHM ISLAND STRUCK   ·   KERCH BRIDGE DOWN   ·   SHENZHEN SUMMIT"
-tick2 = "SENATE FLIPS   ·   EBOLA 11,000+   ·   MEASLES-FREE STATUS LOST"
-for j, tick in enumerate((tick1, tick2)):
-    tw = d.textlength(tick, font=F_TICK)
-    d.text(((W - tw) / 2, TY + 12 + j * 34), tick, font=F_TICK, fill=WHITE)
+# ---- footer ---------------------------------------------------------------
+foot = "THE WORLD IN ONE DAY  ·  SIX STORIES FROM FIVE REGIONS"
+fw = d.textlength(foot, font=F_FOOT)
+d.text(((W - fw) / 2, 988), foot, font=F_FOOT, fill=MUTED)
 
 img.save("entry.png", optimize=True)
 print("wrote entry.png")

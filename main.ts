@@ -1,14 +1,20 @@
-// Entry for make.fun "news-image-20261118" (v3): deliver the pre-drawn
-// dark breaking-news image (entry.png, at this repository's root) by
+// Entry for make.fun "news-image-20261118" (v4): deliver the pre-drawn
+// warm magazine-cover poster (entry.png, at this repository's root) by
 // writing it to the output directory. The copy is deterministic: plain
 // bytes, no timestamps, no randomness, no network. Before writing, the
 // image is checked against the competition's file rules: it must start
 // with the PNG signature, stay under the 1 MiB cap, and be at most
-// 1024x1024 pixels (read from the IHDR chunk). The write is atomic
-// (temporary file + rename), so a half-written file can never be read
-// as the entry.
+// 1024x1024 pixels (width and height read from the IHDR chunk). The
+// write is atomic (temporary file + rename), so a half-written file
+// can never be read as the entry.
 
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -51,4 +57,9 @@ const dest = join(destDir, "entry.png");
 const staging = dest + ".tmp";
 writeFileSync(staging, png);
 renameSync(staging, dest);
+// Read back the size after the rename so a silent short write is
+// caught instead of being handed in as the entry.
+if (statSync(dest).size !== png.length) {
+  throw new Error("entry.png was not written completely");
+}
 console.log("wrote " + dest + " (" + png.length + " bytes)");
